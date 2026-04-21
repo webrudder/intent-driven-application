@@ -65,6 +65,18 @@ export function getOperationLogs(
   };
 }
 
+export function getOperationLogById(id: string): OperationLog | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM operation_log WHERE id = ?').get(id);
+  return row ? rowToOperationLog(row) : null;
+}
+
+export function getLLMCallLogById(id: string): LLMCallLog | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM llm_call_log WHERE id = ?').get(id);
+  return row ? rowToLLMCallLog(row) : null;
+}
+
 // ===== LLM Call Log =====
 
 export function addLLMCallLog(

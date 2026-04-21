@@ -1,0 +1,11 @@
+{
+  "name": "id-app-runtime-ue-client",
+  "version": "1.0.0",
+  "description": "ID-App Runtime UE Client - Puerts TypeScript modules",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

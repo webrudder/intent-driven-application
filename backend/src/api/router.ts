@@ -7,6 +7,8 @@ import {
   listSkills, createSkill, updateSkill, deleteSkill,
   toggleSkillEnable, getSkillVersions, rollbackSkill, testSkill,
   listOperationLogs, listLLMCallLogs,
+  getOperationLogDetail, getLLMCallLogDetail,
+  backupDatabase,
 } from './admin';
 
 const router = Router();
@@ -40,6 +42,11 @@ router.post('/admin/skill/:id/test', authMiddleware, testSkill);
 
 // Log Management
 router.get('/admin/log/operation', authMiddleware, listOperationLogs);
+router.get('/admin/log/operation/:id', authMiddleware, getOperationLogDetail);
 router.get('/admin/log/llm', authMiddleware, listLLMCallLogs);
+router.get('/admin/log/llm/:id', authMiddleware, getLLMCallLogDetail);
+
+// Database Backup
+router.get('/admin/db/backup', authMiddleware, backupDatabase);
 
 export default router;

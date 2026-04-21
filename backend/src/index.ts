@@ -3,12 +3,27 @@ import cors from 'cors';
 import { initDatabase } from './db';
 import apiRouter from './api/router';
 import { config } from './config';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Health check
+app.get('/api/health', (_req: express.Request, res: express.Response) => {
+  res.json({
+    code: 0,
+    data: {
+      status: 'running',
+      port: config.port,
+      dbType: config.db.type,
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
 
 // Routes
 app.use('/api', apiRouter);

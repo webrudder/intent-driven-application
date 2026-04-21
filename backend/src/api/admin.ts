@@ -6,6 +6,9 @@ import { callLLMWithModel } from '../core/llm';
 import { executeSkill } from '../core/skill';
 import { validateSkillCode, validateJSON, validateURL, validateNotEmpty } from '../utils/validate';
 import { addOperationLog } from '../db/log';
+import { config } from '../config';
+import fs from 'fs';
+import path from 'path';
 import type { ApiResponse, LLMConfig, Skill } from '../types';
 
 function getOperator(req: Request): string {
@@ -239,4 +242,47 @@ export function listLLMCallLogs(req: Request, res: Response<ApiResponse<any>>): 
   const result = req.query.result as string;
   const logs = logDb.getLLMCallLogs(page, pageSize, modelName, result);
   res.json({ code: 0, data: logs });
+}
+
+// ===== Log Detail =====
+
+export function getOperationLogDetail(req: Request, res: Response<ApiResponse<any>>): void {
+  const id = getParam(req, 'id');
+  const log = logDb.getOperationLogById(id);
+  if (!log) { res.json({ code: -1, error: 'Log not found' }); return; }
+  res.json({ code: 0, data: log });
+}
+
+export function getLLMCallLogDetail(req: Request, res: Response<ApiResponse<any>>): void {
+  const id = getParam(req, 'id');
+  const log = logDb.getLLMCallLogById(id);
+  if (!log) { res.json({ code: -1, error: 'Log not found' }); return; }
+  res.json({ code: 0, data: log });
+}
+
+// ===== Database Backup =====
+
+export function backupDatabase(req: Request, res: Response): void {
+  if (config.db.type !== 'sqlite') {
+    res.json({ code: -1, error: 'Backup is only supported for SQLite database' });
+    return;
+  }
+
+  const dbPath = config.db.path;
+  if (!fs.existsSync(dbPath)) {
+    res.json({ code: -1, error: 'Database file not found' });
+    return;
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupDir = path.join(path.dirname(dbPath), 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const backupPath = path.join(backupDir, `idapp_backup_${timestamp}.db`);
+  fs.copyFileSync(dbPath, backupPath);
+
+  addOperationLog(getOperator(req), 'backup_db', `Database backed up to ${backupPath}`, 'success');
+  res.download(backupPath, `idapp_backup_${timestamp}.db`);
 }
