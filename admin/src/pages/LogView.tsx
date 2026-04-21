@@ -1,121 +1,135 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Tabs, Input, Select, Space, Modal, Typography, Button } from 'antd';
 import { usePagination } from '../hooks/usePagination';
 import * as logApi from '../api/log';
 import type { OperationLog, LLMCallLog } from '../types';
 
 export default function LogView() {
+  const [activeTab, setActiveTab] = useState<'operation' | 'llm'>('operation');
   const opPagination = usePagination();
   const llmPagination = usePagination();
   const [opData, setOpData] = useState<OperationLog[]>([]);
   const [llmData, setLlmData] = useState<LLMCallLog[]>([]);
-  const [opLoading, setOpLoading] = useState(false);
-  const [llmLoading, setLlmLoading] = useState(false);
-  const [opFilter, setOpFilter] = useState<{ operator?: string; type?: string }>({});
-  const [llmFilter, setLlmFilter] = useState<{ modelName?: string; result?: string }>({});
-  const [detailModal, setDetailModal] = useState<{ open: boolean; title: string; content: string }>({ open: false, title: '', content: '' });
+  const [detailModal, setDetailModal] = useState<string | null>(null);
 
   const fetchOpLogs = useCallback(async () => {
-    setOpLoading(true);
     try {
-      const res = await logApi.listOperationLogs(opPagination.page, opPagination.pageSize, opFilter.operator, opFilter.type);
-      if (res.data) {
-        setOpData(res.data.list);
-        opPagination.setTotal(res.data.total);
-      }
-    } finally { setOpLoading(false); }
-  }, [opPagination.page, opPagination.pageSize, opFilter]);
+      const res = await logApi.listOperationLogs(opPagination.page, opPagination.pageSize);
+      if (res.data) { setOpData(res.data.list); opPagination.setTotal(res.data.total); }
+    } catch { /* handled */ }
+  }, [opPagination.page, opPagination.pageSize]);
 
   const fetchLlmLogs = useCallback(async () => {
-    setLlmLoading(true);
     try {
-      const res = await logApi.listLLMCallLogs(llmPagination.page, llmPagination.pageSize, llmFilter.modelName, llmFilter.result);
-      if (res.data) {
-        setLlmData(res.data.list);
-        llmPagination.setTotal(res.data.total);
-      }
-    } finally { setLlmLoading(false); }
-  }, [llmPagination.page, llmPagination.pageSize, llmFilter]);
+      const res = await logApi.listLLMCallLogs(llmPagination.page, llmPagination.pageSize);
+      if (res.data) { setLlmData(res.data.list); llmPagination.setTotal(res.data.total); }
+    } catch { /* handled */ }
+  }, [llmPagination.page, llmPagination.pageSize]);
 
   useEffect(() => { fetchOpLogs(); }, [fetchOpLogs]);
 
-  const opColumns = [
-    { title: '操作人', dataIndex: 'operator', key: 'operator' },
-    { title: '类型', dataIndex: 'type', key: 'type' },
-    { title: '内容', dataIndex: 'content', key: 'content', ellipsis: true },
-    { title: '结果', dataIndex: 'result', key: 'result' },
-    { title: '时间', dataIndex: 'createdAt', key: 'createdAt' },
-    {
-      title: '详情', key: 'detail',
-      render: (_: any, record: OperationLog) => (
-        <Typography.Link onClick={() => setDetailModal({ open: true, title: '操作日志详情', content: JSON.stringify(record, null, 2) })}>
-          查看
-        </Typography.Link>
-      ),
-    },
-  ];
-
-  const llmColumns = [
-    { title: '模型', dataIndex: 'modelName', key: 'modelName' },
-    { title: '意图', dataIndex: 'intent', key: 'intent' },
-    { title: '响应时间(ms)', dataIndex: 'responseTime', key: 'responseTime' },
-    { title: '结果', dataIndex: 'result', key: 'result' },
-    { title: '时间', dataIndex: 'createdAt', key: 'createdAt' },
-    {
-      title: '详情', key: 'detail',
-      render: (_: any, record: LLMCallLog) => (
-        <Typography.Link onClick={() => setDetailModal({ open: true, title: 'LLM调用日志详情', content: JSON.stringify(record, null, 2) })}>
-          查看
-        </Typography.Link>
-      ),
-    },
-  ];
-
-  const opLogTypes = ['create_llm', 'update_llm', 'delete_llm', 'toggle_llm', 'set_default_llm', 'create_skill', 'update_skill', 'delete_skill', 'toggle_skill', 'rollback_skill'];
-
-  const tabItems = [
-    {
-      key: 'operation',
-      label: '操作日志',
-      children: (
-        <div>
-          <Space style={{ marginBottom: 16 }}>
-            <Input placeholder="操作人" allowClear onChange={(e) => setOpFilter({ ...opFilter, operator: e.target.value })} style={{ width: 150 }} />
-            <Select placeholder="操作类型" allowClear onChange={(v) => setOpFilter({ ...opFilter, type: v })} style={{ width: 160 }}
-              options={opLogTypes.map(t => ({ value: t, label: t }))} />
-            <Button onClick={fetchOpLogs}>刷新</Button>
-          </Space>
-          <Table columns={opColumns} dataSource={opData} rowKey="id" loading={opLoading}
-            pagination={{ current: opPagination.page, pageSize: opPagination.pageSize, total: opPagination.total, onChange: opPagination.onPageChange }} />
-        </div>
-      ),
-    },
-    {
-      key: 'llm',
-      label: 'LLM调用日志',
-      children: (
-        <div>
-          <Space style={{ marginBottom: 16 }}>
-            <Input placeholder="模型名" allowClear onChange={(e) => setLlmFilter({ ...llmFilter, modelName: e.target.value })} style={{ width: 150 }} />
-            <Select placeholder="调用结果" allowClear onChange={(v) => setLlmFilter({ ...llmFilter, result: v })} style={{ width: 120 }}
-              options={[{ value: 'success', label: '成功' }, { value: 'failed', label: '失败' }]} />
-            <Button onClick={fetchLlmLogs}>刷新</Button>
-          </Space>
-          <Table columns={llmColumns} dataSource={llmData} rowKey="id" loading={llmLoading}
-            pagination={{ current: llmPagination.page, pageSize: llmPagination.pageSize, total: llmPagination.total, onChange: llmPagination.onPageChange }} />
-        </div>
-      ),
-    },
-  ];
+  const handleTabChange = (tab: 'operation' | 'llm') => {
+    setActiveTab(tab);
+    if (tab === 'llm') fetchLlmLogs();
+  };
 
   return (
-    <div>
-      <Tabs items={tabItems} onChange={(key) => { if (key === 'llm') fetchLlmLogs(); }} />
-      <Modal title={detailModal.title} open={detailModal.open} onCancel={() => setDetailModal({ ...detailModal, open: false })} footer={null} width={600}>
-        <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: 12, borderRadius: 4, maxHeight: 400, overflow: 'auto' }}>
-          {detailModal.content}
-        </pre>
-      </Modal>
+    <div className="p-6 space-y-4">
+      <h2 className="text-lg font-bold text-text-primary">执行日志</h2>
+
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        <button onClick={() => handleTabChange('operation')}
+          className={`px-4 py-2 text-sm font-medium transition-colors
+            ${activeTab === 'operation' ? 'text-primary border-b-2 border-primary' : 'text-text-tertiary hover:text-text-secondary'}`}>
+          操作日志
+        </button>
+        <button onClick={() => handleTabChange('llm')}
+          className={`px-4 py-2 text-sm font-medium transition-colors
+            ${activeTab === 'llm' ? 'text-primary border-b-2 border-primary' : 'text-text-tertiary hover:text-text-secondary'}`}>
+          LLM 调用日志
+        </button>
+      </div>
+
+      {activeTab === 'operation' ? (
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border">
+              <th className="py-3 px-4 text-text-tertiary text-left">操作人</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">类型</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">内容</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">结果</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">时间</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">详情</th>
+            </tr></thead>
+            <tbody>
+              {opData.map(item => (
+                <tr key={item.id} className="border-b border-border/50 hover:bg-bg-body/50">
+                  <td className="py-2 px-4 text-text-primary">{item.operator}</td>
+                  <td className="py-2 px-4"><span className="px-2 py-0.5 rounded bg-secondary/10 text-secondary text-xs">{item.type}</span></td>
+                  <td className="py-2 px-4 text-text-secondary max-w-[200px] truncate">{item.content}</td>
+                  <td className="py-2 px-4"><span className={`text-xs ${item.result === 'success' ? 'text-success' : 'text-danger'}`}>{item.result}</span></td>
+                  <td className="py-2 px-4 text-text-tertiary text-xs">{item.createdAt}</td>
+                  <td className="py-2 px-4"><button onClick={() => setDetailModal(JSON.stringify(item, null, 2))} className="btn-text text-xs">查看</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex items-center justify-between py-3 px-4">
+            <span className="text-xs text-text-tertiary">共 {opPagination.total} 条</span>
+            <div className="flex gap-2">
+              <button onClick={() => { opPagination.onPageChange(opPagination.page - 1); }} disabled={opPagination.page <= 1} className="btn-text text-xs disabled:opacity-50">上一页</button>
+              <span className="text-xs">{opPagination.page}</span>
+              <button onClick={() => { opPagination.onPageChange(opPagination.page + 1); }} disabled={opPagination.page * opPagination.pageSize >= opPagination.total} className="btn-text text-xs disabled:opacity-50">下一页</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border">
+              <th className="py-3 px-4 text-text-tertiary text-left">模型</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">意图</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">响应时间</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">结果</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">时间</th>
+              <th className="py-3 px-4 text-text-tertiary text-left">详情</th>
+            </tr></thead>
+            <tbody>
+              {llmData.map(item => (
+                <tr key={item.id} className="border-b border-border/50 hover:bg-bg-body/50">
+                  <td className="py-2 px-4 text-text-primary font-medium">{item.modelName}</td>
+                  <td className="py-2 px-4 text-secondary">{item.intent || '-'}</td>
+                  <td className="py-2 px-4 text-text-tertiary">{item.responseTime}ms</td>
+                  <td className="py-2 px-4"><span className={`text-xs ${item.result === 'success' ? 'text-success' : 'text-danger'}`}>{item.result}</span></td>
+                  <td className="py-2 px-4 text-text-tertiary text-xs">{item.createdAt}</td>
+                  <td className="py-2 px-4"><button onClick={() => setDetailModal(JSON.stringify(item, null, 2))} className="btn-text text-xs">查看</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex items-center justify-between py-3 px-4">
+            <span className="text-xs text-text-tertiary">共 {llmPagination.total} 条</span>
+            <div className="flex gap-2">
+              <button onClick={() => { llmPagination.onPageChange(llmPagination.page - 1); }} disabled={llmPagination.page <= 1} className="btn-text text-xs disabled:opacity-50">上一页</button>
+              <span className="text-xs">{llmPagination.page}</span>
+              <button onClick={() => { llmPagination.onPageChange(llmPagination.page + 1); }} disabled={llmPagination.page * llmPagination.pageSize >= llmPagination.total} className="btn-text text-xs disabled:opacity-50">下一页</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-bg-card rounded-card w-[600px] p-6 shadow-card max-h-[80vh] overflow-auto">
+            <h3 className="text-base font-bold text-text-primary mb-4">日志详情</h3>
+            <div className="code-block p-4 text-sm"><pre>{detailModal}</pre></div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setDetailModal(null)} className="btn-secondary text-sm">关闭</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

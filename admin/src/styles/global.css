@@ -1,4 +1,51 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg-body text-text-primary font-sans antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-card rounded-card p-5 shadow-card border border-border;
+  }
+  .card-title {
+    @apply text-base font-bold text-text-primary mb-3;
+  }
+  .btn-primary {
+    @apply bg-primary text-white rounded-btn px-[18px] py-[10px] font-medium
+      hover:bg-[#1254e6] active:bg-[#0e47cc] transition-colors duration-150
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white text-text-primary border border-border rounded-btn px-[18px] py-[10px] font-medium
+      hover:bg-bg-body transition-colors duration-150;
+  }
+  .btn-text {
+    @apply text-text-secondary hover:text-primary transition-colors duration-150 font-medium;
+  }
+  .btn-danger {
+    @apply bg-danger text-white rounded-btn px-[18px] py-[10px] font-medium
+      hover:bg-[#d43636] transition-colors duration-150;
+  }
+  .input-base {
+    @apply bg-white border border-border rounded-input px-4 py-3 text-sm
+      focus:border-primary focus:outline-none transition-colors duration-150;
+  }
+  .intent-input {
+    @apply bg-white border border-border rounded-input px-4 py-3 text-sm h-[80px]
+      focus:border-primary focus:outline-none transition-colors duration-150 resize-none;
+  }
+  .code-block {
+    @apply bg-bg-code rounded-code font-mono text-[13px] text-[#E0E0E0] overflow-auto;
+  }
+  .stepper-step {
+    @apply flex items-center gap-2 text-sm font-medium;
+  }
+  .stepper-dot {
+    @apply w-2 h-2 rounded-full;
+  }
 }

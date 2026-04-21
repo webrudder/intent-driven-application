@@ -1,5 +1,15 @@
 import axios from 'axios';
-import { message } from 'antd';
+
+let onError: ((msg: string) => void) | null = null;
+
+export function setErrorHandler(handler: (msg: string) => void): void {
+  onError = handler;
+}
+
+function showError(msg: string): void {
+  console.error(msg);
+  if (onError) onError(msg);
+}
 
 const request = axios.create({
   baseURL: '/api',
@@ -18,7 +28,7 @@ request.interceptors.response.use(
   (response) => {
     const data = response.data;
     if (data.code !== 0) {
-      message.error(data.error || '请求失败');
+      showError(data.error || '请求失败');
       return Promise.reject(new Error(data.error));
     }
     return data;
@@ -29,7 +39,7 @@ request.interceptors.response.use(
       window.location.href = '/login';
       return Promise.reject(error);
     }
-    message.error(error.message || '网络错误');
+    showError(error.message || '网络错误');
     return Promise.reject(error);
   }
 );

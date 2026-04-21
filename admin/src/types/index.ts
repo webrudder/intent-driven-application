@@ -62,6 +62,19 @@ export interface SkillUpdateInput {
   description?: string;
 }
 
+// ===== UI Schema =====
+export interface UIComponent {
+  type: 'card' | 'table' | 'chart' | 'form';
+  title?: string;
+  data: unknown;
+  style?: Record<string, unknown>;
+}
+
+export interface UISchema {
+  title: string;
+  components: UIComponent[];
+}
+
 // ===== Logs =====
 export interface OperationLog {
   id: string;
